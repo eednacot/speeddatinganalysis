@@ -243,6 +243,10 @@ from sklearn import datasets, linear_model
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import Perceptron
 from sklearn.preprocessing import scale
+from sklearn.metrics import accuracy_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import f1_score
 
 # Question 1: Can I determine if a match will occur with ratings?
 # Question Type: Binary classification
@@ -255,14 +259,43 @@ from sklearn.preprocessing import scale
 
 
 # %% Generate Perceptron Model
-X = scale(df1.loc[:,df.columns[r1_1 + r_s + r_o + r_pf_o]])
+# Extract specific features and corresponding labels
+X = df1.loc[:,df.columns[r1_1 + r_s + r_o + r_pf_o]]
 y = df1.loc[:,"match"]
-X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.2)
-clf = Perceptron(max_iter = 1000)
-clf.fit(X_train,y_train)
-clf.score(X_test, y_test)
+# Split into training and testing sets
+test_size = 0.30
+X_train, X_test, y_train, y_test = train_test_split(X,
+                                                    y,
+                                                    test_size=test_size)
+# Standardize Data
+# Create instance
+sc = StandardScaler()
+# Fit scaler to training set only
+sc.fit(X_train)
+# Scale/transform both the training and testing sets using the scaler fitted 
+# with the training set
+X_train_std = sc.transform(X_train)
+X_test_std  = sc.transform(X_test)
 
+# Generate and test Perceptron Model
+# Define perceptron parameters
+n_iter = 50
 
+# Create instance of perceptron model
+ppn = Perceptron(max_iter=n_iter)
+# Fit perceptron model to standardized data
+ppn.fit(X_train_std,
+        y_train)
+
+# Predict labels and print perceptron accuracy
+y_pred = ppn.predict(X_test_std)
+print("Classification accuracy: {0:.2f}%".format(accuracy_score(y_test,y_pred)\
+      * 100))
+# Print confusion matrix
+print("Confusion matrix:")
+print(confusion_matrix(y_test,y_pred))
+# Print F1-Score
+print("F1-Score: {0:.3f}".format(f1_score(y_test,y_pred)))
 
 
 
@@ -271,88 +304,137 @@ clf.score(X_test, y_test)
 
 # %% Logistic Regression Model
 from sklearn.linear_model import LogisticRegression
-X = scale(df1.loc[:,df.columns[r1_1 + r_s + r_o + r_pf_o]])
+# Extract specific features and corresponding labels
+X = df1.loc[:,df.columns[r1_1 + r_s + r_o + r_pf_o]]
 y = df1.loc[:,"match"]
-X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.2)
-clf = LogisticRegression()
-clf.fit(X_train,y_train)
-clf.score(X_test,y_test)
+# Split into training and testing sets
+test_size = 0.30
+X_train, X_test, y_train, y_test = train_test_split(X,
+                                                    y,
+                                                    test_size=test_size)
 
+# Standardize Data
+# Create instance
+sc = StandardScaler()
+# Fit scaler to training set only
+sc.fit(X_train)
+# Scale/transform both the training and testing sets using the scaler fitted 
+# with the training set
+X_train_std = sc.transform(X_train)
+X_test_std  = sc.transform(X_test)
+
+# Create instance of perceptron model
+lreg = LogisticRegression()
+
+# Fit perceptron model to standardized data
+lreg.fit(X_train,
+         y_train)
+# Predict labels and print perceptron accuracy
+y_pred = lreg.predict(X_test_std)
+print("Classification accuracy: {0:.2f}%".format(accuracy_score(y_test,y_pred)\
+      * 100))
+# Print confusion matrix
+print("Confusion matrix:")
+print(confusion_matrix(y_test,y_pred))
+# Print F1-Score
+print("F1-Score: {0:.3f}".format(f1_score(y_test,y_pred)))
 
 
 
 # %% SVM Model
-from sklearn import svm
-X = scale(df1.loc[:,df.columns[r1_1 + r_s + r_o + r_pf_o]])
+from sklearn.svm import SVC
+# Extract specific features and corresponding labels
+X = df1.loc[:,df.columns[r1_1 + r_s + r_o + r_pf_o]]
 y = df1.loc[:,"match"]
-X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.2)
-clf = svm.SVC()
-clf.fit(X_train,y_train)
-clf.score(X_test,y_test)
+# Split into training and testing sets
+test_size = 0.30
+X_train, X_test, y_train, y_test = train_test_split(X,
+                                                    y,
+                                                    test_size=test_size)
+# Standardize Data
+# Create instance
+sc = StandardScaler()
+# Fit scaler to training set only
+sc.fit(X_train)
+# Scale/transform both the training and testing sets using the scaler fitted 
+    # with the training set
+X_train_std = sc.transform(X_train)
+X_test_std  = sc.transform(X_test)
 
-
+# Create instance of SVM model
+kernel = 'rbf'
+svec = SVC(kernel=kernel)
+svec.fit(X_train,y_train)
+y_pred = svec.predict(X_test)
+print("Classification accuracy: {0:.2f}%".format(accuracy_score(y_test,y_pred)\
+      * 100))
+# Print confusion matrix
+print("Confusion matrix:")
+print(confusion_matrix(y_test,y_pred))
+# Print F1-Score
+print("F1-Score: {0:.3f}".format(f1_score(y_test,y_pred)))
 
 
 # %% Decision Tree Classifier
-from sklearn.tree import DecisionTreeClassifier
-X = scale(df1.loc[:,df.columns[r1_1 + r_s + r_o + r_pf_o]])
-y = df1.loc[:,"match"]
-X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.2)
-clf = DecisionTreeClassifier(random_state=0)
-clf.fit(X_train,y_train)
-clf.score(X_test,y_test)
-
-
-
-
-
-
-# %% Generate Linear Regression Model
-from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import StandardScaler
-# Some of the points have repeated features. 
-# Append new feature counting number of matches per subject
-# Get individual iid numbers
-idlist = [int (v) for v in list(set(df1.loc[:,'iid']))]
-# Create empty list to store number of matches
-nummatch = []
- # Create empty list to store first
-lrlist = []
-#
-lrcol = [r1_1 + r2_1 + r3_1 + r4_1 + r5_1]
-# loop through all of the iid numbers in dataframe df1
-for i in idlist:
-    # Get the subset of data for the i'th subject
-    df1sub = df1.loc[df1['iid'] == i]
-    # Calculate the number of matches from i'th subject subset
-    msum = df1sub['match'].sum()
-    # Append match sum to list nummatch
-    nummatch.append(msum)
-    # Get first row of subset as a list.
-    lrlist.append(df1sub.values.tolist()[0])
-    
-# Create new subset dataframe containing nonrepeated rows of subject survey 
-# answers and number of matches.
-lrdf = pd.DataFrame(data=lrlist, columns = df1.columns)
-# Append list containing number of subject matches to subset dataframe.
-lrdf['nummatch'] = nummatch
-
-# Linear Regression Model 1: Number of matches based on how subjects rate 
-# themselves
-X = lrdf.loc[:,a3_1]
-y = lrdf.loc[:,'nummatch']
-# Standardize input dataset.
-scaler = StandardScaler()
-scaler.fit(X)
-X = scaler.transform(X)
+#from sklearn.tree import DecisionTreeClassifier
+#X = scale(df1.loc[:,df.columns[r1_1 + r_s + r_o + r_pf_o]])
+#y = df1.loc[:,"match"]
 #X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.2)
+#clf = DecisionTreeClassifier(random_state=0)
+#clf.fit(X_train,y_train)
+#clf.score(X_test,y_test)
+
+
+
+
+
+
+## %% Generate Linear Regression Model
+#from sklearn.linear_model import LinearRegression
+#from sklearn.preprocessing import StandardScaler
+## Some of the points have repeated features. 
+## Append new feature counting number of matches per subject
+## Get individual iid numbers
+#idlist = [int (v) for v in list(set(df1.loc[:,'iid']))]
+## Create empty list to store number of matches
+#nummatch = []
+# # Create empty list to store first
+#lrlist = []
+##
+#lrcol = [r1_1 + r2_1 + r3_1 + r4_1 + r5_1]
+## loop through all of the iid numbers in dataframe df1
+#for i in idlist:
+#    # Get the subset of data for the i'th subject
+#    df1sub = df1.loc[df1['iid'] == i]
+#    # Calculate the number of matches from i'th subject subset
+#    msum = df1sub['match'].sum()
+#    # Append match sum to list nummatch
+#    nummatch.append(msum)
+#    # Get first row of subset as a list.
+#    lrlist.append(df1sub.values.tolist()[0])
+#    
+## Create new subset dataframe containing nonrepeated rows of subject survey 
+## answers and number of matches.
+#lrdf = pd.DataFrame(data=lrlist, columns = df1.columns)
+## Append list containing number of subject matches to subset dataframe.
+#lrdf['nummatch'] = nummatch
+#
+## Linear Regression Model 1: Number of matches based on how subjects rate 
+## themselves
+#X = lrdf.loc[:,a3_1]
+#y = lrdf.loc[:,'nummatch']
+## Standardize input dataset.
+#scaler = StandardScaler()
+#scaler.fit(X)
+#X = scaler.transform(X)
+##X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.2)
+##reg = LinearRegression().fit(X_train,y_train)
+##reg.score(X_test,y_test)
+#
+#from sklearn.preprocessing import PolynomialFeatures
+#
+#poly = PolynomialFeatures(degree=3)
+#X_in = poly.fit_transform(X)
+#X_train, X_test, y_train, y_test = train_test_split(X_in,y,test_size=0.2)
 #reg = LinearRegression().fit(X_train,y_train)
 #reg.score(X_test,y_test)
-
-from sklearn.preprocessing import PolynomialFeatures
-
-poly = PolynomialFeatures(degree=3)
-X_in = poly.fit_transform(X)
-X_train, X_test, y_train, y_test = train_test_split(X_in,y,test_size=0.2)
-reg = LinearRegression().fit(X_train,y_train)
-reg.score(X_test,y_test)
