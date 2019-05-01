@@ -2,7 +2,7 @@
     Filename:           speeddatinganalysis.py
     Author:             Eustace Ednacot
     Date Created:       Wed Mar 27 14:33:12 2019
-    Date last modified: 
+    Date last modified: Tue Apr 30 21:18    2019
     Python Version:     2.7
         
 @author: eustacee
@@ -10,6 +10,12 @@
 
 import pandas as pd
 import numpy  as np
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import Perceptron,LogisticRegression,LinearRegression
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score,confusion_matrix,f1_score
+from sklearn.preprocessing import StandardScaler
 
 ###############################################################################
 # Function Definitions
@@ -69,12 +75,15 @@ def imputeKNN(dat, k):
     return dat   
 
 ###############################################################################
-# Data Prep-Processing
+# %% Data Ingestion
 ###############################################################################
 # Convert csv file into DataFrame format.
 filename = 'Speed Dating Data.csv'
 df = pd.read_csv(filename)
 
+###############################################################################
+# %% Data Preparation
+###############################################################################
 # Remove certain feature columns from dataframe using the data key.
 col_rmv = ['zipcode', 'from', 'mn_sat', 'undergra', 'career', 'condtn', \
            'field', 'length']
@@ -83,22 +92,19 @@ df = df.drop(columns = col_rmv)
 col_rmv = df.columns[range(df.columns.get_loc("attr1_s"), \
                           df.columns.get_loc("amb3_s")+1)]
 df = df.drop(columns = col_rmv)
-
-# Separate columns of survey answers from timeframe 2 and 3 from the dataset.
-# Timeframe 2
+# Separate columns of survey answers from time frames 2 and 3 from the dataset.
+# Remove time frame 2
 col_t2 = df.columns[range(df.columns.get_loc("satis_2"), \
                           df.columns.get_loc("amb5_2")+1)]
 df2 = df[col_t2].copy()
 df = df.drop(columns = col_t2)
-# Timeframe 3
+# Remove time frame 3
 col_t3 = df.columns[range(df.columns.get_loc("you_call"), \
                           df.columns.get_loc("amb5_3")+1)]
 df3 = df[col_t3].copy()
 df = df.drop(columns = col_t3)
 
-
-
-# Get column index values from 
+# Get column index values from DataFrame column names.
 r1_1   = range(df.columns.get_loc("attr1_1"),df.columns.get_loc("shar1_1")+1)
 r2_1   = range(df.columns.get_loc("attr2_1"),df.columns.get_loc("shar2_1")+1)
 r3_1   = range(df.columns.get_loc("attr3_1"),df.columns.get_loc("amb3_1")+1)
@@ -117,69 +123,52 @@ a_s    = df.columns[r_s]
 a_o    = df.columns[r_o]
 a_pf_o = df.columns[r_pf_o]
 
-
-
-# List to contain indices of fully NaN rows in key attribute columns.
+# Initialize list to contain indices of fully NaN rows in key attribute 
+# columns.
 empty = [] 
 # Fill list with indices of empty rows from attributes 1_1
 for index, row in df[a1_1].iterrows():
     if pd.isna(row).all() == True:
         empty.append(index)
-        
 # Fill list with indices of empty rows from attributes 2_1
 for index, row in df[a2_1].iterrows():
     if pd.isna(row).all() == True:
         empty.append(index)
-        
 # Fill list with indices of empty rows from attributes 3_1
 for index, row in df[a3_1].iterrows():
     if pd.isna(row).all() == True:
         empty.append(index)
-        
-
 # Fill list with indices from attributes 4_1 for waves 6 to 21
 for index, row in df[df['wave'] > 5][a4_1].iterrows():
     if pd.isna(row).all() == True:
         empty.append(index)
-        
 # Fill list with indices from attributes 5_1 for waves 6 to 21
 for index, row in df[df['wave'] > 9][a5_1].iterrows():
     if pd.isna(row).all() == True:
         empty.append(index)
-
-        
 # Fill list with indices from attributes (scorecard answers)
 for index, row in df[a_s].iterrows():
     if pd.isna(row).all() == True:
-        empty.append(index)
-        
+        empty.append(index)    
 # Fill list with indices from attributes (partner's scorecard answers)
 for index, row in df[a_o].iterrows():
     if pd.isna(row).all() == True:
-        empty.append(index)
-        
+        empty.append(index)    
 # Fill list with indices from attributes (partner's answers to a1_1 attributes)
 for index, row in df[a_pf_o].iterrows():
     if pd.isna(row).all() == True:
-        empty.append(index)
-        
+        empty.append(index)     
 # Fill in remaining empty cells in df[a_pf_o]. This is done because this group
 # of ratings is done in point allocation. Empty cells are 0's.
 df[a_pf_o].fillna(0)
-
 # Make list empty contain unique elements.
 df1 = df.copy().drop(list(set(empty)))
 
 # At this point, unneeded columns and completely empty rows for particular 
 # attribute groups have been removed from the base dataframe.
 
-
-
-###############################################################################
 # Missing Data Imputation
-###############################################################################
-
-# Generate subsets based on wave.
+# Use logical/boolean indexing to generate subsets based on wave.
 # Wave 6 onwards
 w6on =      df1[df1['wave'] > 5]
 # Waves 6 to 9
@@ -189,7 +178,7 @@ w10on =     df1[df1['wave'] > 9]
 # Waves 1 to 5 and 10 to 21
 wnot6to9 =  df1[(df1['wave'] < 6) | (df1['wave'] > 9)]
 
-# Check if any NaNs exist in subset and impute them if there are.
+# Check if any NaNs exist in subset and impute them.
 # Imputation for attribute column group a1_1 for waves 1 to 5 and 10 to 21
 if pd.isnull(wnot6to9[a1_1]).any().any():
     df1.loc[wnot6to9.index,a1_1] = imputeKNN(wnot6to9[a1_1],30)
@@ -234,31 +223,9 @@ print pd.isnull(df1[a_s]).any().any()
 print pd.isnull(df1[a_o]).any().any()
 print pd.isnull(df1[a_pf_o]).any().any()
 
-
-
 ###############################################################################
-# Data Analysis
+# %% Data Segregation (Separation into training/validation/testing sets)
 ###############################################################################
-from sklearn import datasets, linear_model
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import Perceptron
-from sklearn.preprocessing import scale
-from sklearn.metrics import accuracy_score
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import confusion_matrix
-from sklearn.metrics import f1_score
-
-# Question 1: Can I determine if a match will occur with ratings?
-# Question Type: Binary classification
-# Answer Method: Perceptron, Logistic Regression
-# Features to test:     - pf_o_, _o, a1_1, a_s
-#                       -
-#                       -
-
-# Question 2: 
-
-
-# %% Generate Perceptron Model
 # Extract specific features and corresponding labels
 X = df1.loc[:,df.columns[r1_1 + r_s + r_o + r_pf_o]]
 y = df1.loc[:,"match"]
@@ -268,25 +235,24 @@ X_train, X_test, y_train, y_test = train_test_split(X,
                                                     y,
                                                     test_size=test_size)
 # Standardize Data
-# Create instance
+# Create instance of scaler
 sc = StandardScaler()
-# Fit scaler to training set only
+# Fit scaler to training set
 sc.fit(X_train)
 # Scale/transform both the training and testing sets using the scaler fitted 
 # with the training set
 X_train_std = sc.transform(X_train)
 X_test_std  = sc.transform(X_test)
 
+# %% Generate Perceptron Model
 # Generate and test Perceptron Model
 # Define perceptron parameters
 n_iter = 50
-
 # Create instance of perceptron model
 ppn = Perceptron(max_iter=n_iter)
 # Fit perceptron model to standardized data
 ppn.fit(X_train_std,
         y_train)
-
 # Predict labels and print perceptron accuracy
 y_pred = ppn.predict(X_test_std)
 print("Classification accuracy: {0:.2f}%".format(accuracy_score(y_test,y_pred)\
@@ -297,39 +263,14 @@ print(confusion_matrix(y_test,y_pred))
 # Print F1-Score
 print("F1-Score: {0:.3f}".format(f1_score(y_test,y_pred)))
 
-
-
-
-
-
 # %% Logistic Regression Model
-from sklearn.linear_model import LogisticRegression
-# Extract specific features and corresponding labels
-X = df1.loc[:,df.columns[r1_1 + r_s + r_o + r_pf_o]]
-y = df1.loc[:,"match"]
-# Split into training and testing sets
-test_size = 0.30
-X_train, X_test, y_train, y_test = train_test_split(X,
-                                                    y,
-                                                    test_size=test_size)
-
-# Standardize Data
-# Create instance
-sc = StandardScaler()
-# Fit scaler to training set only
-sc.fit(X_train)
-# Scale/transform both the training and testing sets using the scaler fitted 
-# with the training set
-X_train_std = sc.transform(X_train)
-X_test_std  = sc.transform(X_test)
-
-# Create instance of perceptron model
+# Generate and test logistic regression model
+# Create instance of logistic regression model
 lreg = LogisticRegression()
-
-# Fit perceptron model to standardized data
-lreg.fit(X_train,
+# Fit logistic regression model with standardized data
+lreg.fit(X_train_std,
          y_train)
-# Predict labels and print perceptron accuracy
+# Predict labels and print logistic regression accuracy
 y_pred = lreg.predict(X_test_std)
 print("Classification accuracy: {0:.2f}%".format(accuracy_score(y_test,y_pred)\
       * 100))
@@ -339,33 +280,16 @@ print(confusion_matrix(y_test,y_pred))
 # Print F1-Score
 print("F1-Score: {0:.3f}".format(f1_score(y_test,y_pred)))
 
-
-
 # %% SVM Model
-from sklearn.svm import SVC
-# Extract specific features and corresponding labels
-X = df1.loc[:,df.columns[r1_1 + r_s + r_o + r_pf_o]]
-y = df1.loc[:,"match"]
-# Split into training and testing sets
-test_size = 0.30
-X_train, X_test, y_train, y_test = train_test_split(X,
-                                                    y,
-                                                    test_size=test_size)
-# Standardize Data
-# Create instance
-sc = StandardScaler()
-# Fit scaler to training set only
-sc.fit(X_train)
-# Scale/transform both the training and testing sets using the scaler fitted 
-    # with the training set
-X_train_std = sc.transform(X_train)
-X_test_std  = sc.transform(X_test)
 
 # Create instance of SVM model
 kernel = 'rbf'
 svec = SVC(kernel=kernel)
-svec.fit(X_train,y_train)
-y_pred = svec.predict(X_test)
+# Fit SVM model with standardized data 
+svec.fit(X_train_std,
+         y_train)
+# Predict labels and print SVM accuracy
+y_pred = svec.predict(X_test_std)
 print("Classification accuracy: {0:.2f}%".format(accuracy_score(y_test,y_pred)\
       * 100))
 # Print confusion matrix
@@ -374,24 +298,24 @@ print(confusion_matrix(y_test,y_pred))
 # Print F1-Score
 print("F1-Score: {0:.3f}".format(f1_score(y_test,y_pred)))
 
+# %% Decision Tree Classifier Model
 
-# %% Decision Tree Classifier
-#from sklearn.tree import DecisionTreeClassifier
-#X = scale(df1.loc[:,df.columns[r1_1 + r_s + r_o + r_pf_o]])
-#y = df1.loc[:,"match"]
-#X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.2)
-#clf = DecisionTreeClassifier(random_state=0)
-#clf.fit(X_train,y_train)
-#clf.score(X_test,y_test)
+# Create instance of Decision Tree Classifier model
+dtc = DecisionTreeClassifier(random_state=0)
+# Fit Dec. Tree Classifier with standardized data
+dtc.fit(X_train_std,
+        y_train)
+# Predict labels and print DTC accuracys
+y_pred = dtc.predict(X_test_std)
+print("Classification accuracy: {0:.2f}%".format(accuracy_score(y_test,y_pred)\
+      * 100))
+# Print confusion matrix
+print("Confusion matrix:")
+print(confusion_matrix(y_test,y_pred))
+# Print F1-Score
+print("F1-Score: {0:.3f}".format(f1_score(y_test,y_pred)))
 
-
-
-
-
-
-## %% Generate Linear Regression Model
-#from sklearn.linear_model import LinearRegression
-#from sklearn.preprocessing import StandardScaler
+# %% Generate Linear Regression Model
 ## Some of the points have repeated features. 
 ## Append new feature counting number of matches per subject
 ## Get individual iid numbers
