@@ -11,11 +11,13 @@
 import pandas as pd
 import numpy  as np
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import Perceptron,LogisticRegression,LinearRegression
+from sklearn.linear_model import Perceptron,LogisticRegression
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import accuracy_score,confusion_matrix,f1_score
 from sklearn.preprocessing import StandardScaler
+from imblearn.over_sampling import BorderlineSMOTE
+from imblearn.metrics import classification_report_imbalanced
 
 ###############################################################################
 # Function Definitions
@@ -229,10 +231,23 @@ print pd.isnull(df1[a_pf_o]).any().any()
 # Extract specific features and corresponding labels
 X = df1.loc[:,df.columns[r1_1 + r_s + r_o + r_pf_o]]
 y = df1.loc[:,"match"]
+
+# Over sample data set to balance classes
+k_neighbors = 5
+n_jobs = 1
+m_neighbors = 10
+kind='borderline-1'
+# Create instance of BorderlineSMOTE over-sampler
+sm = BorderlineSMOTE(k_neighbors=k_neighbors,n_jobs=n_jobs,m_neighbors=m_neighbors)
+X_re, y_re = sm.fit_resample(X,y)
+
+
+
+
 # Split into training and testing sets
 test_size = 0.30
-X_train, X_test, y_train, y_test = train_test_split(X,
-                                                    y,
+X_train, X_test, y_train, y_test = train_test_split(X_re,
+                                                    y_re,
                                                     test_size=test_size)
 # Standardize Data
 # Create instance of scaler
@@ -243,6 +258,13 @@ sc.fit(X_train)
 # with the training set
 X_train_std = sc.transform(X_train)
 X_test_std  = sc.transform(X_test)
+
+
+
+
+
+
+
 
 # %% Generate Perceptron Model
 # Generate and test Perceptron Model
@@ -255,13 +277,14 @@ ppn.fit(X_train_std,
         y_train)
 # Predict labels and print perceptron accuracy
 y_pred = ppn.predict(X_test_std)
-print("Classification accuracy: {0:.2f}%".format(accuracy_score(y_test,y_pred)\
-      * 100))
-# Print confusion matrix
-print("Confusion matrix:")
-print(confusion_matrix(y_test,y_pred))
-# Print F1-Score
-print("F1-Score: {0:.3f}".format(f1_score(y_test,y_pred)))
+#print("Classification accuracy: {0:.2f}%".format(accuracy_score(y_test,y_pred)\
+#      * 100))
+## Print confusion matrix
+#print("Confusion matrix:")
+#print(confusion_matrix(y_test,y_pred))
+## Print F1-Score
+#print("F1-Score: {0:.3f}".format(f1_score(y_test,y_pred)))
+print(classification_report_imbalanced(y_test, y_pred))
 
 # %% Logistic Regression Model
 # Generate and test logistic regression model
@@ -272,13 +295,14 @@ lreg.fit(X_train_std,
          y_train)
 # Predict labels and print logistic regression accuracy
 y_pred = lreg.predict(X_test_std)
-print("Classification accuracy: {0:.2f}%".format(accuracy_score(y_test,y_pred)\
-      * 100))
-# Print confusion matrix
-print("Confusion matrix:")
-print(confusion_matrix(y_test,y_pred))
-# Print F1-Score
-print("F1-Score: {0:.3f}".format(f1_score(y_test,y_pred)))
+#print("Classification accuracy: {0:.2f}%".format(accuracy_score(y_test,y_pred)\
+#      * 100))
+## Print confusion matrix
+#print("Confusion matrix:")
+#print(confusion_matrix(y_test,y_pred))
+## Print F1-Score
+#print("F1-Score: {0:.3f}".format(f1_score(y_test,y_pred)))
+print(classification_report_imbalanced(y_test, y_pred))
 
 # %% SVM Model
 
@@ -290,13 +314,14 @@ svec.fit(X_train_std,
          y_train)
 # Predict labels and print SVM accuracy
 y_pred = svec.predict(X_test_std)
-print("Classification accuracy: {0:.2f}%".format(accuracy_score(y_test,y_pred)\
-      * 100))
-# Print confusion matrix
-print("Confusion matrix:")
-print(confusion_matrix(y_test,y_pred))
-# Print F1-Score
-print("F1-Score: {0:.3f}".format(f1_score(y_test,y_pred)))
+#print("Classification accuracy: {0:.2f}%".format(accuracy_score(y_test,y_pred)\
+#      * 100))
+## Print confusion matrix
+#print("Confusion matrix:")
+#print(confusion_matrix(y_test,y_pred))
+## Print F1-Score
+#print("F1-Score: {0:.3f}".format(f1_score(y_test,y_pred)))
+print(classification_report_imbalanced(y_test, y_pred))
 
 # %% Decision Tree Classifier Model
 
@@ -307,13 +332,14 @@ dtc.fit(X_train_std,
         y_train)
 # Predict labels and print DTC accuracys
 y_pred = dtc.predict(X_test_std)
-print("Classification accuracy: {0:.2f}%".format(accuracy_score(y_test,y_pred)\
-      * 100))
-# Print confusion matrix
-print("Confusion matrix:")
-print(confusion_matrix(y_test,y_pred))
-# Print F1-Score
-print("F1-Score: {0:.3f}".format(f1_score(y_test,y_pred)))
+#print("Classification accuracy: {0:.2f}%".format(accuracy_score(y_test,y_pred)\
+#      * 100))
+## Print confusion matrix
+#print("Confusion matrix:")
+#print(confusion_matrix(y_test,y_pred))
+## Print F1-Score
+#print("F1-Score: {0:.3f}".format(f1_score(y_test,y_pred)))
+print(classification_report_imbalanced(y_test, y_pred))
 
 # %% Generate Linear Regression Model
 ## Some of the points have repeated features. 
