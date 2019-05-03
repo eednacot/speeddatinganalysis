@@ -14,10 +14,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import Perceptron,LogisticRegression
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import accuracy_score,confusion_matrix,f1_score
+from sklearn.metrics import accuracy_score,confusion_matrix,roc_curve,auc
 from sklearn.preprocessing import StandardScaler
-from imblearn.over_sampling import BorderlineSMOTE
+from imblearn.over_sampling import BorderlineSMOTE, ADASYN
 from imblearn.metrics import classification_report_imbalanced
+from sklearn.model_selection import GridSearchCV
 
 ###############################################################################
 # Function Definitions
@@ -76,6 +77,39 @@ def imputeKNN(dat, k):
             dat.at[l[0], c] = dat0.loc[nn, c].mean()
     return dat   
 
+
+def svc_param_selection(X,y,nfolds):
+    Cs = [0.001, 0.01, 0.1, 1, 10]
+    gammas = [0.001, 0.01, 0.1, 1]
+    param_grid = {'C': Cs, 'gamma' : gammas}
+    grid_search = GridSearchCV(SVC(), 
+                               param_grid, 
+                               cv=nfolds,
+                               scoring='f1')
+    grid_search.fit(X, y)
+    grid_search.best_params_
+    return grid_search.best_params_
+
+def dt_param_selection(X,y,nfolds):
+    max_depths = np.linspace(1,32,32,endpoint=True)
+    min_samples_splits = np.linspace(0.1, 1.0, 10, endpoint=True)
+    min_samples_leafs = np.linspace(0.1, 0.5, 5, endpoint=True)
+    max_features = list(range(1,X.shape[1]+1))
+    param_grid = {'max_depth': max_depths,
+                  'min_samples_split': min_samples_splits,
+                  'min_samples_leaf': min_samples_leafs,
+                  'max_features': max_features}
+    grid_search = GridSearchCV(DecisionTreeClassifier(random_state=0),
+                               param_grid,
+                               cv=nfolds,
+                               scoring='f1')
+    grid_search.fit(X,y)
+    grid_search.best_params_
+    return grid_search.best_params_
+
+def pn_param_selection(X,y,nfolds):
+    epochs = list(range(50))
+    
 ###############################################################################
 # %% Data Ingestion
 ###############################################################################
@@ -220,7 +254,7 @@ print pd.isnull(df1[a1_1]).any().any()
 print pd.isnull(df1[a2_1]).any().any()
 print pd.isnull(df1[a3_1]).any().any()
 print pd.isnull(df1[df1['wave'] > 5][a4_1]).any().any()
-print pd.isnull(df1[df1['wave'] > 5][a5_1]).any().any()
+print pd.isnull(df1[df1['wave'] > 9][a5_1]).any().any()
 print pd.isnull(df1[a_s]).any().any()
 print pd.isnull(df1[a_o]).any().any()
 print pd.isnull(df1[a_pf_o]).any().any()
@@ -233,6 +267,7 @@ X = df1.loc[:,df.columns[r1_1 + r_s + r_o + r_pf_o]]
 y = df1.loc[:,"match"]
 
 # Over sample data set to balance classes
+# Borderline SMOTE oversampler
 k_neighbors = 5
 n_jobs = 1
 m_neighbors = 10
@@ -240,9 +275,11 @@ kind='borderline-1'
 # Create instance of BorderlineSMOTE over-sampler
 sm = BorderlineSMOTE(k_neighbors=k_neighbors,n_jobs=n_jobs,m_neighbors=m_neighbors)
 X_re, y_re = sm.fit_resample(X,y)
-
-
-
+# ADASYN oversampler
+#n_neighbors = 5
+#n_jobs = 1
+#ada = ADASYN(n_neighbors=n_neighbors,n_jobs=n_jobs)
+#X_re, y_re = ada.fit_resample(X, y)
 
 # Split into training and testing sets
 test_size = 0.30
@@ -259,9 +296,9 @@ sc.fit(X_train)
 X_train_std = sc.transform(X_train)
 X_test_std  = sc.transform(X_test)
 
-
-
-
+###############################################################################
+# %% Model Training and Testing
+###############################################################################
 
 
 
@@ -277,13 +314,13 @@ ppn.fit(X_train_std,
         y_train)
 # Predict labels and print perceptron accuracy
 y_pred = ppn.predict(X_test_std)
-#print("Classification accuracy: {0:.2f}%".format(accuracy_score(y_test,y_pred)\
-#      * 100))
-## Print confusion matrix
-#print("Confusion matrix:")
-#print(confusion_matrix(y_test,y_pred))
-## Print F1-Score
-#print("F1-Score: {0:.3f}".format(f1_score(y_test,y_pred)))
+print("Perceptron Performance:")
+print("Classification accuracy: {0:.2f}%".format(accuracy_score(y_test,y_pred)* 100))
+# Print confusion matrix
+print("Confusion matrix:")
+print(confusion_matrix(y_test,y_pred))
+# Print classification report
+print("Classification Report:")
 print(classification_report_imbalanced(y_test, y_pred))
 
 # %% Logistic Regression Model
@@ -295,51 +332,56 @@ lreg.fit(X_train_std,
          y_train)
 # Predict labels and print logistic regression accuracy
 y_pred = lreg.predict(X_test_std)
-#print("Classification accuracy: {0:.2f}%".format(accuracy_score(y_test,y_pred)\
-#      * 100))
-## Print confusion matrix
-#print("Confusion matrix:")
-#print(confusion_matrix(y_test,y_pred))
-## Print F1-Score
-#print("F1-Score: {0:.3f}".format(f1_score(y_test,y_pred)))
+print("Logistic Regression Performance:")
+print("Classification accuracy: {0:.2f}%".format(accuracy_score(y_test,y_pred)* 100))
+# Print confusion matrix
+print("Confusion matrix:")
+print(confusion_matrix(y_test,y_pred))
+# Print classification report
+print("Classification Report:")
 print(classification_report_imbalanced(y_test, y_pred))
 
 # %% SVM Model
-
 # Create instance of SVM model
-kernel = 'rbf'
-svec = SVC(kernel=kernel)
+svec = SVC()
 # Fit SVM model with standardized data 
 svec.fit(X_train_std,
          y_train)
 # Predict labels and print SVM accuracy
 y_pred = svec.predict(X_test_std)
-#print("Classification accuracy: {0:.2f}%".format(accuracy_score(y_test,y_pred)\
-#      * 100))
-## Print confusion matrix
-#print("Confusion matrix:")
-#print(confusion_matrix(y_test,y_pred))
-## Print F1-Score
-#print("F1-Score: {0:.3f}".format(f1_score(y_test,y_pred)))
+print("SVM Performance:")
+print("Classification accuracy: {0:.2f}%".format(accuracy_score(y_test,y_pred)* 100))
+# Print confusion matrix
+print("Confusion matrix:")
+print(confusion_matrix(y_test,y_pred))
+# Print classification report
+print("Classification Report:")
 print(classification_report_imbalanced(y_test, y_pred))
 
 # %% Decision Tree Classifier Model
 
 # Create instance of Decision Tree Classifier model
-dtc = DecisionTreeClassifier(random_state=0)
+#dtc = DecisionTreeClassifier(random_state=0,
+#                             max_depth=2,
+#                             max_features=18,
+#                             min_samples_leaf=0.1,
+#                             min_samples_split=0.1)
+dtc = DecisionTreeClassifier()
 # Fit Dec. Tree Classifier with standardized data
 dtc.fit(X_train_std,
         y_train)
 # Predict labels and print DTC accuracys
 y_pred = dtc.predict(X_test_std)
-#print("Classification accuracy: {0:.2f}%".format(accuracy_score(y_test,y_pred)\
-#      * 100))
-## Print confusion matrix
-#print("Confusion matrix:")
-#print(confusion_matrix(y_test,y_pred))
-## Print F1-Score
-#print("F1-Score: {0:.3f}".format(f1_score(y_test,y_pred)))
+print("Decision Tree Classifier Performance:")
+print("Classification accuracy: {0:.2f}%".format(accuracy_score(y_test,y_pred)* 100))
+# Print confusion matrix
+print("Confusion matrix:")
+print(confusion_matrix(y_test,y_pred))
+# Print classification report
+print("Classification Report:")
 print(classification_report_imbalanced(y_test, y_pred))
+
+
 
 # %% Generate Linear Regression Model
 ## Some of the points have repeated features. 
